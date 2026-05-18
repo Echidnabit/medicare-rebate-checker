@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pathology-Comparison", "Pathology-Comparison\Pathology-Comparison.csproj", "{1D5332C5-E32D-4CD5-92B8-918D89D6C4FB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1D5332C5-E32D-4CD5-92B8-918D89D6C4FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1D5332C5-E32D-4CD5-92B8-918D89D6C4FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1D5332C5-E32D-4CD5-92B8-918D89D6C4FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1D5332C5-E32D-4CD5-92B8-918D89D6C4FB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
