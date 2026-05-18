@@ -1,0 +1,190 @@
+﻿@page "/"
+@inject MbsDataService MbsData
+
+<PageTitle>Medicare Rebate Checker</PageTitle>
+
+<MudStack Spacing="4">
+    <MudPaper Class="hero-panel" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="hero-content">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h3">Medicare Rebate Checker</MudText>
+                <MudText Typo="Typo.body1" Class="hero-copy">
+                    Search Medicare Benefits Schedule fees before visiting a pathology collection centre.
+                </MudText>
+            </MudStack>
+
+            <MudChip Color="Color.Secondary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Verified">
+                MBS schedule data
+            </MudChip>
+        </MudStack>
+    </MudPaper>
+
+    <MudPaper Class="search-panel" Elevation="1">
+        <MudGrid Spacing="3" AlignItems="Center">
+            <MudItem xs="12" md="7">
+                <MudTextField @bind-Value="searchText"
+                              Immediate="true"
+                              Label="Search item number or service"
+                              Placeholder="e.g. 65070, glucose, blood film"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSwitch @bind-Value="pathologyOnly"
+                           Color="Color.Primary"
+                           Label="Pathology only" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="2">
+                <MudStack AlignItems="AlignItems.End" Spacing="0">
+                    <MudText Typo="Typo.caption">Showing</MudText>
+                    <MudText Typo="Typo.h6">@FilteredItems.Count().ToString("N0")</MudText>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @if (isLoading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled">@errorMessage</MudAlert>
+    }
+    else
+    {
+        <MudStack Row="true" Class="stat-row" Spacing="2">
+            <MudPaper Class="stat-card" Elevation="0">
+                <MudText Typo="Typo.caption">All items</MudText>
+                <MudText Typo="Typo.h5">@items.Count.ToString("N0")</MudText>
+            </MudPaper>
+            <MudPaper Class="stat-card" Elevation="0">
+                <MudText Typo="Typo.caption">Pathology items</MudText>
+                <MudText Typo="Typo.h5">@items.Count(item => item.IsPathology).ToString("N0")</MudText>
+            </MudPaper>
+            <MudPaper Class="stat-card" Elevation="0">
+                <MudText Typo="Typo.caption">Generated</MudText>
+                <MudText Typo="Typo.body1">@GeneratedLabel</MudText>
+            </MudPaper>
+        </MudStack>
+
+        @if (FilteredItems.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                No MBS items match the current search.
+            </MudAlert>
+        }
+        else
+        {
+            <MudTable Items="VisibleItems" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" Class="results-table">
+                <HeaderContent>
+                    <MudTh>Item</MudTh>
+                    <MudTh>Service</MudTh>
+                    <MudTh>Category</MudTh>
+                    <MudTh Class="numeric-cell">Schedule fee</MudTh>
+                    <MudTh Class="numeric-cell">75%</MudTh>
+                    <MudTh Class="numeric-cell">85%</MudTh>
+                    <MudTh Class="numeric-cell">100%</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Item">
+                        <MudText Typo="Typo.subtitle2">@context.ItemNumber</MudText>
+                        @if (!string.IsNullOrWhiteSpace(context.SubItemNumber))
+                        {
+                            <MudText Typo="Typo.caption">Sub @context.SubItemNumber</MudText>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Service">
+                        <MudText Typo="Typo.body2" Class="description-cell">@context.Description</MudText>
+                        @if (!string.IsNullOrWhiteSpace(context.DerivedFee))
+                        {
+                            <MudText Typo="Typo.caption" Class="muted-text">Derived fee applies</MudText>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Category">
+                        <MudChip Size="Size.Small"
+                                 Color="@(context.IsPathology ? Color.Primary : Color.Default)"
+                                 Variant="Variant.Outlined">
+                            @context.CategoryName
+                        </MudChip>
+                        <MudText Typo="Typo.caption" Class="muted-text">@context.GroupLabel</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Schedule fee" Class="numeric-cell">@Money(context.ScheduleFee)</MudTd>
+                    <MudTd DataLabel="75%" Class="numeric-cell">@Money(context.Benefit75)</MudTd>
+                    <MudTd DataLabel="85%" Class="numeric-cell">@Money(context.Benefit85)</MudTd>
+                    <MudTd DataLabel="100%" Class="numeric-cell">@Money(context.Benefit100)</MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" />
+                </PagerContent>
+            </MudTable>
+        }
+    }
+
+    <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined">
+        Fees are MBS schedule and benefit amounts only. Actual out-of-pocket costs depend on the provider and billing arrangement.
+    </MudAlert>
+</MudStack>
+
+@code {
+    private IReadOnlyList<MbsItem> items = [];
+    private MbsMetadata? metadata;
+    private bool isLoading = true;
+    private bool pathologyOnly;
+    private string? searchText;
+    private string? errorMessage;
+
+    private IReadOnlyList<MbsItem> FilteredItems => items
+        .Where(MatchesScope)
+        .Where(MatchesSearch)
+        .ToList();
+
+    private IReadOnlyList<MbsItem> VisibleItems => FilteredItems.Take(500).ToList();
+
+    private string GeneratedLabel => DateTimeOffset.TryParse(metadata?.GeneratedAtUtc, out var generatedAt)
+        ? generatedAt.ToLocalTime().ToString("d MMM yyyy")
+        : "Not available";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            items = await MbsData.GetItemsAsync();
+            metadata = await MbsData.GetMetadataAsync();
+        }
+        catch (Exception exception)
+        {
+            errorMessage = $"Could not load MBS data. Run the data updater and try again. {exception.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private bool MatchesScope(MbsItem item)
+    {
+        return !pathologyOnly || item.IsPathology;
+    }
+
+    private bool MatchesSearch(MbsItem item)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            return true;
+        }
+
+        var query = searchText.Trim();
+        return item.ItemNumber.Contains(query, StringComparison.OrdinalIgnoreCase)
+            || item.Description.Contains(query, StringComparison.OrdinalIgnoreCase)
+            || item.Group.Contains(query, StringComparison.OrdinalIgnoreCase)
+            || item.CategoryName.Contains(query, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string Money(decimal? value)
+    {
+        return value is null ? "-" : value.Value.ToString("C");
+    }
+}
