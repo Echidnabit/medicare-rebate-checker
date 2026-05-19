@@ -39,8 +39,6 @@ jobs:
       - name: Prepare Pages artifact
         run: |
           cp publish/wwwroot/index.html publish/wwwroot/404.html
-          sed -i 's#<base href="/" />#<base href="/pathology-comparison/" />#' publish/wwwroot/index.html
-          sed -i 's#<base href="/" />#<base href="/pathology-comparison/" />#' publish/wwwroot/404.html
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
